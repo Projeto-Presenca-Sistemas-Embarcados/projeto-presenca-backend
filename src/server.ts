@@ -1,6 +1,8 @@
 import fastify from 'fastify';
 import { PrismaClient } from '@prisma/client';
 
+// TODO: Fazer os endpoints e lidar com o crud do sistema
+
 const server = fastify({ logger: true });
 const db = new PrismaClient();
 
