@@ -2,7 +2,7 @@ import fastify from 'fastify';
 import { PrismaClient } from '@prisma/client';
 
 const server = fastify({ logger: true });
-const database = new PrismaClient();
+const db = new PrismaClient();
 
 server.get('/', async (request, reply) => {
   reply.code(200).send({ hello: 'world' });
