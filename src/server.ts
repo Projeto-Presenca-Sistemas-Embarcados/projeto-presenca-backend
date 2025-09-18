@@ -13,5 +13,6 @@ server.get('/', async (request, reply) => {
 server.listen({ port: 3000 }, (err) => {
   if (err) {
     server.log.error(`Error starting server: ${err}`);
+    process.exit(1);
   }
 });
