@@ -38,7 +38,7 @@ npm install
 
 4. Configure o banco de dados:
 
-- altere o nome do arquivo `.env.example` para `.env` e ajuste a variável `DATABASE_URL` conforme necessário.
+- Crie um arquivo `.env` e copie o conteúdo do `.env.example` para ele. Ajuste as variáveis conforme necessário.
 
 5. Gere o cliente Prisma:
 
