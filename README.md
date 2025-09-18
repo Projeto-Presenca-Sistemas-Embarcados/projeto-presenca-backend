@@ -10,7 +10,13 @@ Backend do sistema de presença utilizando Fastify e Prisma ORM.
 - TypeScript
 - SQLite (banco de dados)
 
+## Requisito
+
+- [Node.js](https://nodejs.org/)
+
 ## Instalação
+
+- Confira se você tem o Node.js instalado executando `node -v` no terminal. Se não estiver instalado, baixe e instale a partir do site oficial.
 
 1. Clone o repositório:
 
