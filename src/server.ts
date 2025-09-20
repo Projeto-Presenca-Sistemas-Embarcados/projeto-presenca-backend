@@ -1,13 +1,14 @@
 import fastify from 'fastify';
 import cors from '@fastify/cors';
 import { PrismaClient } from '@prisma/client';
+import { lessonRoutes } from '@/routes/lesson-routes.js';
 
-// TODO: Fazer os endpoints e lidar com o crud do sistema
-
-const db = new PrismaClient();
+export const db = new PrismaClient();
 const server = fastify({ logger: true });
 
 await server.register(cors, { origin: '*' });
+
+await server.register(lessonRoutes, { prefix: '/lessons' });
 
 server.get('/', async (request, reply) => {
   reply.code(200).send({ hello: 'world' });
