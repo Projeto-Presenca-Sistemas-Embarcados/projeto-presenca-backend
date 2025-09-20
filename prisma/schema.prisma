@@ -7,21 +7,27 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum PersonType {
-  STUDENT
-  TEACHER
-}
 
-model Person {
-  id        Int        @id @default(autoincrement())
+model Student {
+  id        Int     @id @default(autoincrement())
   name      String
-  type      PersonType
-  tagId     String     @unique
+  tagId     String  @unique
   startTime String?
 
   // relations
-  lessonsTaught Lesson[]        @relation("TeacherLessons")
-  attendances   LessonStudent[]
+  attendances LessonStudent[]
+}
+
+model Teacher {
+  id        Int     @id @default(autoincrement())
+  name      String
+  email     String  @unique   
+  password  String      
+  tagId     String  @unique
+  startTime String?
+
+  // relations
+  lessonsTaught Lesson[] @relation("TeacherLessons")
 }
 
 model Lesson {
@@ -29,7 +35,7 @@ model Lesson {
   room      String
   subject   String
   teacherId Int
-  teacher   Person   @relation("TeacherLessons", fields: [teacherId], references: [id])
+  teacher   Teacher  @relation("TeacherLessons", fields: [teacherId], references: [id])
   startTime DateTime
   endTime   DateTime
   closed    Boolean  @default(false)
@@ -46,7 +52,7 @@ model LessonStudent {
   present   Boolean @default(false)
 
   lesson  Lesson @relation(fields: [lessonId], references: [id])
-  student Person @relation(fields: [studentId], references: [id])
+  student Student @relation(fields: [studentId], references: [id])
 
   @@unique([lessonId, studentId])
 }
