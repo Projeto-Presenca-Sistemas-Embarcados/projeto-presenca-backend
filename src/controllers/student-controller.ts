@@ -1,0 +1,66 @@
+import type { FastifyReply, FastifyRequest } from 'fastify';
+import { db } from '@/server.js';
+
+// Listar todos os alunos
+export async function getStudents(
+  request: FastifyRequest,
+  reply: FastifyReply,
+) {
+  const students = await db.student.findMany();
+  reply.send(students);
+}
+
+// Criar novo aluno
+export async function createStudent(
+  request: FastifyRequest,
+  reply: FastifyReply,
+) {
+  const { name, tagId, startTime } = request.body as {
+    name: string;
+    tagId: string;
+    startTime?: string;
+  };
+
+  const student = await db.student.create({
+    data: {
+      name,
+      tagId,
+      startTime: startTime || null,
+    },
+  });
+
+  reply.code(201).send(student);
+}
+
+// Obter aluno específico
+export async function getStudent(request: FastifyRequest, reply: FastifyReply) {
+  const { id } = request.params as { id: string };
+
+  const student = await db.student.findUnique({
+    where: { id: parseInt(id) },
+  });
+
+  if (!student) {
+    return reply.code(404).send({ error: 'Aluno não encontrado' });
+  }
+
+  reply.send(student);
+}
+
+// Buscar aluno por tagId (para sistema RFID/NFC)
+export async function getStudentByTag(
+  request: FastifyRequest,
+  reply: FastifyReply,
+) {
+  const { tagId } = request.params as { tagId: string };
+
+  const student = await db.student.findUnique({
+    where: { tagId },
+  });
+
+  if (!student) {
+    return reply.code(404).send({ error: 'Aluno não encontrado' });
+  }
+
+  reply.send(student);
+}
