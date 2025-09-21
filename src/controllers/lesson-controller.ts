@@ -1,5 +1,9 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { db } from '@/server.js';
+import {
+  sendValidationError,
+  validatePostRequest,
+} from '@/utils/validation.js';
 
 // Listar todas as aulas
 export async function getLessons(request: FastifyRequest, reply: FastifyReply) {
@@ -51,7 +55,32 @@ export async function createLesson(
   request: FastifyRequest,
   reply: FastifyReply,
 ) {
-  const { room, subject, teacherId, startTime, endTime } = request.body as {
+  const body = request.body as any;
+
+  const validation = validatePostRequest(
+    body,
+    ['room', 'subject', 'teacherId', 'startTime', 'endTime'],
+    {
+      room: 'string',
+      subject: 'string',
+      teacherId: 'number',
+      startTime: 'string',
+      endTime: 'string',
+    },
+    {
+      room: { min: 1, max: 50 },
+      subject: { min: 3, max: 100 },
+      teacherId: { min: 1 },
+      startTime: { min: 1, max: 10 },
+      endTime: { min: 1, max: 10 },
+    },
+  );
+
+  if (!validation.isValid) {
+    return sendValidationError(reply, validation);
+  }
+
+  const { room, subject, teacherId, startTime, endTime } = body as {
     room: string;
     subject: string;
     teacherId: number;
@@ -149,7 +178,26 @@ export async function markAttendance(
   reply: FastifyReply,
 ) {
   const { id } = request.params as { id: string };
-  const { studentId, present } = request.body as {
+
+  const body = request.body as any;
+
+  const validation = validatePostRequest(
+    body,
+    ['studentId', 'present'],
+    {
+      studentId: 'number',
+      present: 'boolean',
+    },
+    {
+      studentId: { min: 1 },
+    },
+  );
+
+  if (!validation.isValid) {
+    return sendValidationError(reply, validation);
+  }
+
+  const { studentId, present } = body as {
     studentId: number;
     present: boolean;
   };
