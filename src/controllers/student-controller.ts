@@ -1,5 +1,9 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { db } from '@/server.js';
+import {
+  validatePostRequest,
+  sendValidationError,
+} from '@/utils/validation.js';
 
 // Listar todos os alunos
 export async function getStudents(
@@ -15,21 +19,55 @@ export async function createStudent(
   request: FastifyRequest,
   reply: FastifyReply,
 ) {
-  const { name, tagId, startTime } = request.body as {
-    name: string;
-    tagId: string;
-    startTime?: string;
-  };
+  try {
+    const body = request.body as any;
 
-  const student = await db.student.create({
-    data: {
-      name,
-      tagId,
-      startTime: startTime || null,
-    },
-  });
+    // Validação de campos obrigatórios
+    const validation = validatePostRequest(
+      body,
+      ['name', 'tagId'],
+      { name: 'string', tagId: 'string', startTime: 'string' },
+      {
+        name: { min: 2, max: 100 },
+        tagId: { min: 1, max: 50 },
+        startTime: { min: 1, max: 10 },
+      },
+    );
 
-  reply.code(201).send(student);
+    if (!validation.isValid) {
+      return sendValidationError(reply, validation);
+    }
+
+    const { name, tagId, startTime } = body;
+
+    // Verifica se a tag já está em uso
+    const existingStudent = await db.student.findUnique({
+      where: { tagId },
+    });
+
+    if (existingStudent) {
+      return reply.status(409).send({
+        error: 'Tag ID já está em uso',
+        code: 'TAG_ALREADY_EXISTS',
+      });
+    }
+
+    const student = await db.student.create({
+      data: {
+        name,
+        tagId,
+        startTime: startTime || null,
+      },
+    });
+
+    reply.code(201).send(student);
+  } catch (error) {
+    console.error('Erro ao criar estudante:', error);
+    return reply.status(500).send({
+      error: 'Erro interno do servidor',
+      code: 'INTERNAL_SERVER_ERROR',
+    });
+  }
 }
 
 // Obter aluno específico

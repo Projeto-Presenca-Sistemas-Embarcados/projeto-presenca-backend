@@ -10,21 +10,28 @@ import {
   generateRefreshToken,
   verifyRefreshToken,
 } from '@/utils/jwt.js';
+import {
+  validatePostRequest,
+  sendValidationError,
+} from '@/utils/validation.js';
 
 export async function login(request: FastifyRequest, reply: FastifyReply) {
   try {
-    const { email, password } = request.body as {
-      email: string;
-      password: string;
-    };
+    const body = request.body as any;
 
-    // Validação básica
-    if (!email || !password) {
-      return reply.status(400).send({
-        error: 'Email e senha são obrigatórios',
-        code: 'MISSING_CREDENTIALS',
-      });
+    // Validação de campos obrigatórios
+    const validation = validatePostRequest(
+      body,
+      ['email', 'password'],
+      { email: 'email', password: 'string' },
+      { email: { min: 5, max: 255 }, password: { min: 1, max: 255 } },
+    );
+
+    if (!validation.isValid) {
+      return sendValidationError(reply, validation);
     }
+
+    const { email, password } = body;
 
     // Busca o professor no banco de dados
     const teacher = await db.teacher.findUnique({
@@ -88,20 +95,26 @@ export async function login(request: FastifyRequest, reply: FastifyReply) {
 
 export async function register(request: FastifyRequest, reply: FastifyReply) {
   try {
-    const { name, email, password, tagId } = request.body as {
-      name: string;
-      email: string;
-      password: string;
-      tagId: string;
-    };
+    const body = request.body as any;
 
-    // Validação básica
-    if (!name || !email || !password || !tagId) {
-      return reply.status(400).send({
-        error: 'Todos os campos são obrigatórios',
-        code: 'MISSING_FIELDS',
-      });
+    // Validação de campos obrigatórios
+    const validation = validatePostRequest(
+      body,
+      ['name', 'email', 'password', 'tagId'],
+      { name: 'string', email: 'email', password: 'string', tagId: 'string' },
+      {
+        name: { min: 2, max: 100 },
+        email: { min: 5, max: 255 },
+        password: { min: 8, max: 255 },
+        tagId: { min: 1, max: 50 },
+      },
+    );
+
+    if (!validation.isValid) {
+      return sendValidationError(reply, validation);
     }
+
+    const { name, email, password, tagId } = body;
 
     // Valida força da senha
     const passwordValidation = validatePasswordStrength(password);
@@ -176,16 +189,21 @@ export async function refreshToken(
   reply: FastifyReply,
 ) {
   try {
-    const { refreshToken } = request.body as {
-      refreshToken: string;
-    };
+    const body = request.body as any;
 
-    if (!refreshToken) {
-      return reply.status(400).send({
-        error: 'Refresh token é obrigatório',
-        code: 'MISSING_REFRESH_TOKEN',
-      });
+    // Validação de campos obrigatórios
+    const validation = validatePostRequest(
+      body,
+      ['refreshToken'],
+      { refreshToken: 'string' },
+      { refreshToken: { min: 1, max: 1000 } },
+    );
+
+    if (!validation.isValid) {
+      return sendValidationError(reply, validation);
     }
+
+    const { refreshToken } = body;
 
     // Verifica o refresh token
     const payload = verifyRefreshToken(refreshToken);
@@ -262,17 +280,24 @@ export async function changePassword(
   reply: FastifyReply,
 ) {
   try {
-    const { currentPassword, newPassword } = request.body as {
-      currentPassword: string;
-      newPassword: string;
-    };
+    const body = request.body as any;
 
-    if (!currentPassword || !newPassword) {
-      return reply.status(400).send({
-        error: 'Senha atual e nova senha são obrigatórias',
-        code: 'MISSING_PASSWORDS',
-      });
+    // Validação de campos obrigatórios
+    const validation = validatePostRequest(
+      body,
+      ['currentPassword', 'newPassword'],
+      { currentPassword: 'string', newPassword: 'string' },
+      {
+        currentPassword: { min: 1, max: 255 },
+        newPassword: { min: 8, max: 255 },
+      },
+    );
+
+    if (!validation.isValid) {
+      return sendValidationError(reply, validation);
     }
+
+    const { currentPassword, newPassword } = body;
 
     // Valida força da nova senha
     const passwordValidation = validatePasswordStrength(newPassword);
