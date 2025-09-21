@@ -1,5 +1,9 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { db } from '@/server.js';
+import {
+  sendValidationError,
+  validatePostRequest,
+} from '@/utils/validation.js';
 
 // Listar todos os alunos
 export async function getStudents(
@@ -15,11 +19,36 @@ export async function createStudent(
   request: FastifyRequest,
   reply: FastifyReply,
 ) {
-  const { name, tagId, startTime } = request.body as {
-    name: string;
-    tagId: string;
-    startTime?: string;
-  };
+  const body = request.body as any;
+
+  const validation = validatePostRequest(
+    body,
+    ['name', 'tagId'],
+    {
+      name: 'string',
+      tagId: 'string',
+      startTime: 'string',
+    },
+    {
+      name: { min: 3, max: 100 },
+      tagId: { min: 1, max: 50 },
+      startTime: { min: 1, max: 10 },
+    },
+  );
+
+  if (!validation.isValid) {
+    return sendValidationError(reply, validation);
+  }
+
+  const { name, tagId, startTime } = body;
+
+  const existingStudent = await db.student.findUnique({
+    where: { tagId },
+  });
+
+  if (existingStudent) {
+    return reply.status(409).send({ error: 'Tag ID já cadastrado' });
+  }
 
   const student = await db.student.create({
     data: {
