@@ -1,28 +1,47 @@
 import type { FastifyInstance } from 'fastify';
 import * as lessonController from '@/controllers/lesson-controller.js';
+import { authenticateToken, requireTeacher } from '@/middleware/auth.js';
 
 export async function lessonRoutes(server: FastifyInstance) {
-  // Listar todas as aulas
-  server.get('/', lessonController.getLessons);
-
-  // Criar nova aula
-  server.post('/', lessonController.createLesson);
-
-  // Obter aula específica
-  server.get('/:id', lessonController.getLesson);
-
-  // Listar aulas de um professor
-  server.get('/teacher/:teacherId', lessonController.getTeacherLessons);
-
-  // Abrir aula (permitir marcação de presença)
-  server.post('/:id/open', lessonController.openLesson);
-
-  // Fechar aula (finalizar marcação de presença)
-  server.post('/:id/close', lessonController.closeLesson);
-
-  // Listar alunos de uma aula
-  server.get('/:id/students', lessonController.getLessonStudents);
-
-  // Marcar presença de um aluno
-  server.post('/:id/attendance', lessonController.markAttendance);
+  // Rotas protegidas - requerem autenticação de professor
+  server.get(
+    '/',
+    { preHandler: [authenticateToken, requireTeacher] },
+    lessonController.getLessons,
+  );
+  server.post(
+    '/',
+    { preHandler: [authenticateToken, requireTeacher] },
+    lessonController.createLesson,
+  );
+  server.get(
+    '/:id',
+    { preHandler: [authenticateToken, requireTeacher] },
+    lessonController.getLesson,
+  );
+  server.get(
+    '/teacher/:teacherId',
+    { preHandler: [authenticateToken, requireTeacher] },
+    lessonController.getTeacherLessons,
+  );
+  server.post(
+    '/:id/open',
+    { preHandler: [authenticateToken, requireTeacher] },
+    lessonController.openLesson,
+  );
+  server.post(
+    '/:id/close',
+    { preHandler: [authenticateToken, requireTeacher] },
+    lessonController.closeLesson,
+  );
+  server.get(
+    '/:id/students',
+    { preHandler: [authenticateToken, requireTeacher] },
+    lessonController.getLessonStudents,
+  );
+  server.post(
+    '/:id/attendance',
+    { preHandler: [authenticateToken, requireTeacher] },
+    lessonController.markAttendance,
+  );
 }

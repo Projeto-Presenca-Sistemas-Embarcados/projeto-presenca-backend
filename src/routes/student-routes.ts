@@ -1,16 +1,25 @@
 import type { FastifyInstance } from 'fastify';
 import * as studentController from '@/controllers/student-controller.js';
+import { authenticateToken, requireTeacher } from '@/middleware/auth.js';
 
 export async function studentRoutes(server: FastifyInstance) {
-  // Listar todos os alunos
-  server.get('/', studentController.getStudents);
+  // Rotas protegidas - requerem autenticação de professor
+  server.get(
+    '/',
+    { preHandler: [authenticateToken, requireTeacher] },
+    studentController.getStudents,
+  );
+  server.post(
+    '/',
+    { preHandler: [authenticateToken, requireTeacher] },
+    studentController.createStudent,
+  );
+  server.get(
+    '/:id',
+    { preHandler: [authenticateToken, requireTeacher] },
+    studentController.getStudent,
+  );
 
-  // Criar novo aluno
-  server.post('/', studentController.createStudent);
-
-  // Obter aluno específico
-  server.get('/:id', studentController.getStudent);
-
-  // Buscar aluno por tagId (para sistema RFID/NFC)
+  // Rota pública para busca por tag (usado pelo sistema RFID/NFC)
   server.get('/tag/:tagId', studentController.getStudentByTag);
 }

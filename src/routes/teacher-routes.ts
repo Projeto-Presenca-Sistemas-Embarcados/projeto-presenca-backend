@@ -1,13 +1,22 @@
 import type { FastifyInstance } from 'fastify';
 import * as teacherController from '@/controllers/teacher-controller.js';
+import { authenticateToken, requireTeacher } from '@/middleware/auth.js';
 
 export async function teacherRoutes(server: FastifyInstance) {
-  // Listar todos os professores
-  server.get('/', teacherController.getTeachers);
-
-  // Criar novo professor
-  server.post('/', teacherController.createTeacher);
-
-  // Obter professor específico
-  server.get('/:id', teacherController.getTeacher);
+  // Rotas protegidas - requerem autenticação de professor
+  server.get(
+    '/',
+    { preHandler: [authenticateToken, requireTeacher] },
+    teacherController.getTeachers,
+  );
+  server.post(
+    '/',
+    { preHandler: [authenticateToken, requireTeacher] },
+    teacherController.createTeacher,
+  );
+  server.get(
+    '/:id',
+    { preHandler: [authenticateToken, requireTeacher] },
+    teacherController.getTeacher,
+  );
 }
