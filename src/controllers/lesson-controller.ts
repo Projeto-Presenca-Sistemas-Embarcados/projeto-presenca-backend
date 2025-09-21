@@ -5,49 +5,95 @@ import {
   sendValidationError,
 } from '@/utils/validation.js';
 
-// Listar todas as aulas
+// Listar aulas do professor autenticado
 export async function getLessons(request: FastifyRequest, reply: FastifyReply) {
-  const lessons = await db.lesson.findMany({
-    include: {
-      teacher: {
-        select: { id: true, name: true, email: true },
-      },
-      students: {
-        include: {
-          student: {
-            select: { id: true, name: true, tagId: true },
+  try {
+    // Obtém o ID do professor autenticado do middleware
+    const teacherId = (request as any).user?.id;
+
+    if (!teacherId) {
+      return reply.status(401).send({
+        error: 'Usuário não autenticado',
+        code: 'NOT_AUTHENTICATED',
+      });
+    }
+
+    const lessons = await db.lesson.findMany({
+      where: { teacherId },
+      include: {
+        teacher: {
+          select: { id: true, name: true, email: true },
+        },
+        students: {
+          include: {
+            student: {
+              select: { id: true, name: true, tagId: true },
+            },
           },
         },
       },
-    },
-  });
-  reply.send(lessons);
+      orderBy: { startTime: 'desc' }, // Ordena por data mais recente
+    });
+
+    reply.send(lessons);
+  } catch (error) {
+    console.error('Erro ao buscar lições:', error);
+    return reply.status(500).send({
+      error: 'Erro interno do servidor',
+      code: 'INTERNAL_SERVER_ERROR',
+    });
+  }
 }
 
-// Listar aulas de um professor específico
+// Listar aulas de um professor específico (apenas suas próprias aulas)
 export async function getTeacherLessons(
   request: FastifyRequest,
   reply: FastifyReply,
 ) {
-  const { teacherId } = request.params as { teacherId: string };
+  try {
+    const { teacherId } = request.params as { teacherId: string };
+    const authenticatedTeacherId = (request as any).user?.id;
 
-  const lessons = await db.lesson.findMany({
-    where: { teacherId: parseInt(teacherId) },
-    include: {
-      teacher: {
-        select: { id: true, name: true, email: true },
-      },
-      students: {
-        include: {
-          student: {
-            select: { id: true, name: true, tagId: true },
+    if (!authenticatedTeacherId) {
+      return reply.status(401).send({
+        error: 'Usuário não autenticado',
+        code: 'NOT_AUTHENTICATED',
+      });
+    }
+
+    // Verifica se o professor está tentando acessar suas próprias aulas
+    if (parseInt(teacherId) !== authenticatedTeacherId) {
+      return reply.status(403).send({
+        error: 'Você só pode acessar suas próprias aulas',
+        code: 'FORBIDDEN_ACCESS',
+      });
+    }
+
+    const lessons = await db.lesson.findMany({
+      where: { teacherId: parseInt(teacherId) },
+      include: {
+        teacher: {
+          select: { id: true, name: true, email: true },
+        },
+        students: {
+          include: {
+            student: {
+              select: { id: true, name: true, tagId: true },
+            },
           },
         },
       },
-    },
-  });
+      orderBy: { startTime: 'desc' },
+    });
 
-  reply.send(lessons);
+    reply.send(lessons);
+  } catch (error) {
+    console.error('Erro ao buscar lições do professor:', error);
+    return reply.status(500).send({
+      error: 'Erro interno do servidor',
+      code: 'INTERNAL_SERVER_ERROR',
+    });
+  }
 }
 
 // Criar nova aula
@@ -58,14 +104,23 @@ export async function createLesson(
   try {
     const body = request.body as any;
 
-    // Validação de campos obrigatórios
+    // Obtém o ID do professor autenticado
+    const authenticatedTeacherId = (request as any).user?.id;
+
+    if (!authenticatedTeacherId) {
+      return reply.status(401).send({
+        error: 'Usuário não autenticado',
+        code: 'NOT_AUTHENTICATED',
+      });
+    }
+
+    // Validação de campos obrigatórios (removendo teacherId pois será automático)
     const validation = validatePostRequest(
       body,
-      ['room', 'subject', 'teacherId', 'startTime', 'endTime'],
+      ['room', 'subject', 'startTime', 'endTime'],
       {
         room: 'string',
         subject: 'string',
-        teacherId: 'number',
         startTime: 'string',
         endTime: 'string',
       },
@@ -81,19 +136,7 @@ export async function createLesson(
       return sendValidationError(reply, validation);
     }
 
-    const { room, subject, teacherId, startTime, endTime } = body;
-
-    // Verifica se o professor existe
-    const teacher = await db.teacher.findUnique({
-      where: { id: teacherId },
-    });
-
-    if (!teacher) {
-      return reply.status(404).send({
-        error: 'Professor não encontrado',
-        code: 'TEACHER_NOT_FOUND',
-      });
-    }
+    const { room, subject, startTime, endTime } = body;
 
     // Valida se as datas são válidas
     const startDate = new Date(startTime);
@@ -117,7 +160,7 @@ export async function createLesson(
       data: {
         room,
         subject,
-        teacherId,
+        teacherId: authenticatedTeacherId, // Usa o ID do professor autenticado
         startTime: startDate,
         endTime: endDate,
         opened: false,
@@ -140,48 +183,110 @@ export async function createLesson(
   }
 }
 
-// Obter aula específica
+// Obter aula específica (apenas se for do professor autenticado)
 export async function getLesson(request: FastifyRequest, reply: FastifyReply) {
-  const { id } = request.params as { id: string };
+  try {
+    const { id } = request.params as { id: string };
+    const authenticatedTeacherId = (request as any).user?.id;
 
-  const lesson = await db.lesson.findUnique({
-    where: { id: parseInt(id) },
-    include: {
-      teacher: {
-        select: { id: true, name: true, email: true },
-      },
-      students: {
-        include: {
-          student: {
-            select: { id: true, name: true, tagId: true },
+    if (!authenticatedTeacherId) {
+      return reply.status(401).send({
+        error: 'Usuário não autenticado',
+        code: 'NOT_AUTHENTICATED',
+      });
+    }
+
+    const lesson = await db.lesson.findUnique({
+      where: { id: parseInt(id) },
+      include: {
+        teacher: {
+          select: { id: true, name: true, email: true },
+        },
+        students: {
+          include: {
+            student: {
+              select: { id: true, name: true, tagId: true },
+            },
           },
         },
       },
-    },
-  });
+    });
 
-  if (!lesson) {
-    return reply.code(404).send({ error: 'Aula não encontrada' });
+    if (!lesson) {
+      return reply.code(404).send({
+        error: 'Aula não encontrada',
+        code: 'LESSON_NOT_FOUND',
+      });
+    }
+
+    // Verifica se a aula pertence ao professor autenticado
+    if (lesson.teacherId !== authenticatedTeacherId) {
+      return reply.status(403).send({
+        error: 'Você só pode acessar suas próprias aulas',
+        code: 'FORBIDDEN_ACCESS',
+      });
+    }
+
+    reply.send(lesson);
+  } catch (error) {
+    console.error('Erro ao buscar lição:', error);
+    return reply.status(500).send({
+      error: 'Erro interno do servidor',
+      code: 'INTERNAL_SERVER_ERROR',
+    });
   }
-
-  reply.send(lesson);
 }
 
 // Abrir aula (permitir marcação de presença)
 export async function openLesson(request: FastifyRequest, reply: FastifyReply) {
-  const { id } = request.params as { id: string };
+  try {
+    const { id } = request.params as { id: string };
+    const authenticatedTeacherId = (request as any).user?.id;
 
-  const lesson = await db.lesson.update({
-    where: { id: parseInt(id) },
-    data: { opened: true, closed: false },
-    include: {
-      teacher: {
-        select: { id: true, name: true, email: true },
+    if (!authenticatedTeacherId) {
+      return reply.status(401).send({
+        error: 'Usuário não autenticado',
+        code: 'NOT_AUTHENTICATED',
+      });
+    }
+
+    // Verifica se a aula existe e pertence ao professor
+    const existingLesson = await db.lesson.findUnique({
+      where: { id: parseInt(id) },
+    });
+
+    if (!existingLesson) {
+      return reply.status(404).send({
+        error: 'Aula não encontrada',
+        code: 'LESSON_NOT_FOUND',
+      });
+    }
+
+    if (existingLesson.teacherId !== authenticatedTeacherId) {
+      return reply.status(403).send({
+        error: 'Você só pode abrir suas próprias aulas',
+        code: 'FORBIDDEN_ACCESS',
+      });
+    }
+
+    const lesson = await db.lesson.update({
+      where: { id: parseInt(id) },
+      data: { opened: true, closed: false },
+      include: {
+        teacher: {
+          select: { id: true, name: true, email: true },
+        },
       },
-    },
-  });
+    });
 
-  reply.send(lesson);
+    reply.send(lesson);
+  } catch (error) {
+    console.error('Erro ao abrir lição:', error);
+    return reply.status(500).send({
+      error: 'Erro interno do servidor',
+      code: 'INTERNAL_SERVER_ERROR',
+    });
+  }
 }
 
 // Fechar aula (finalizar marcação de presença)
@@ -189,19 +294,54 @@ export async function closeLesson(
   request: FastifyRequest,
   reply: FastifyReply,
 ) {
-  const { id } = request.params as { id: string };
+  try {
+    const { id } = request.params as { id: string };
+    const authenticatedTeacherId = (request as any).user?.id;
 
-  const lesson = await db.lesson.update({
-    where: { id: parseInt(id) },
-    data: { opened: false, closed: true },
-    include: {
-      teacher: {
-        select: { id: true, name: true, email: true },
+    if (!authenticatedTeacherId) {
+      return reply.status(401).send({
+        error: 'Usuário não autenticado',
+        code: 'NOT_AUTHENTICATED',
+      });
+    }
+
+    // Verifica se a aula existe e pertence ao professor
+    const existingLesson = await db.lesson.findUnique({
+      where: { id: parseInt(id) },
+    });
+
+    if (!existingLesson) {
+      return reply.status(404).send({
+        error: 'Aula não encontrada',
+        code: 'LESSON_NOT_FOUND',
+      });
+    }
+
+    if (existingLesson.teacherId !== authenticatedTeacherId) {
+      return reply.status(403).send({
+        error: 'Você só pode fechar suas próprias aulas',
+        code: 'FORBIDDEN_ACCESS',
+      });
+    }
+
+    const lesson = await db.lesson.update({
+      where: { id: parseInt(id) },
+      data: { opened: false, closed: true },
+      include: {
+        teacher: {
+          select: { id: true, name: true, email: true },
+        },
       },
-    },
-  });
+    });
 
-  reply.send(lesson);
+    reply.send(lesson);
+  } catch (error) {
+    console.error('Erro ao fechar lição:', error);
+    return reply.status(500).send({
+      error: 'Erro interno do servidor',
+      code: 'INTERNAL_SERVER_ERROR',
+    });
+  }
 }
 
 // Marcar presença de um aluno
@@ -212,6 +352,14 @@ export async function markAttendance(
   try {
     const { id } = request.params as { id: string };
     const body = request.body as any;
+    const authenticatedTeacherId = (request as any).user?.id;
+
+    if (!authenticatedTeacherId) {
+      return reply.status(401).send({
+        error: 'Usuário não autenticado',
+        code: 'NOT_AUTHENTICATED',
+      });
+    }
 
     // Validação de campos obrigatórios
     const validation = validatePostRequest(body, ['studentId', 'present'], {
@@ -225,7 +373,7 @@ export async function markAttendance(
 
     const { studentId, present } = body;
 
-    // Verificar se a aula está aberta
+    // Verificar se a aula está aberta e pertence ao professor
     const lesson = await db.lesson.findUnique({
       where: { id: parseInt(id) },
     });
@@ -234,6 +382,14 @@ export async function markAttendance(
       return reply.code(404).send({
         error: 'Aula não encontrada',
         code: 'LESSON_NOT_FOUND',
+      });
+    }
+
+    // Verifica se a aula pertence ao professor autenticado
+    if (lesson.teacherId !== authenticatedTeacherId) {
+      return reply.status(403).send({
+        error: 'Você só pode marcar presença em suas próprias aulas',
+        code: 'FORBIDDEN_ACCESS',
       });
     }
 
@@ -292,16 +448,51 @@ export async function getLessonStudents(
   request: FastifyRequest,
   reply: FastifyReply,
 ) {
-  const { id } = request.params as { id: string };
+  try {
+    const { id } = request.params as { id: string };
+    const authenticatedTeacherId = (request as any).user?.id;
 
-  const students = await db.lessonStudent.findMany({
-    where: { lessonId: parseInt(id) },
-    include: {
-      student: {
-        select: { id: true, name: true, tagId: true },
+    if (!authenticatedTeacherId) {
+      return reply.status(401).send({
+        error: 'Usuário não autenticado',
+        code: 'NOT_AUTHENTICATED',
+      });
+    }
+
+    // Verifica se a aula existe e pertence ao professor
+    const lesson = await db.lesson.findUnique({
+      where: { id: parseInt(id) },
+    });
+
+    if (!lesson) {
+      return reply.status(404).send({
+        error: 'Aula não encontrada',
+        code: 'LESSON_NOT_FOUND',
+      });
+    }
+
+    if (lesson.teacherId !== authenticatedTeacherId) {
+      return reply.status(403).send({
+        error: 'Você só pode ver alunos de suas próprias aulas',
+        code: 'FORBIDDEN_ACCESS',
+      });
+    }
+
+    const students = await db.lessonStudent.findMany({
+      where: { lessonId: parseInt(id) },
+      include: {
+        student: {
+          select: { id: true, name: true, tagId: true },
+        },
       },
-    },
-  });
+    });
 
-  reply.send(students);
+    reply.send(students);
+  } catch (error) {
+    console.error('Erro ao buscar alunos da lição:', error);
+    return reply.status(500).send({
+      error: 'Erro interno do servidor',
+      code: 'INTERNAL_SERVER_ERROR',
+    });
+  }
 }
