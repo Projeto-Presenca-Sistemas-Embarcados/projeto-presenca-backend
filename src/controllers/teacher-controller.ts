@@ -53,7 +53,13 @@ export async function createTeacher(
     return sendValidationError(reply, validation);
   }
 
-  const { name, email, password, tagId, startTime } = body;
+  const { name, email, password, tagId, startTime } = body as {
+    name: string;
+    email: string;
+    password: string;
+    tagId: string;
+    startTime?: string;
+  };
 
   const existingEmail = await db.teacher.findUnique({
     where: { email },
