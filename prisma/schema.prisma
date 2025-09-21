@@ -18,12 +18,15 @@ model Student {
 }
 
 model Teacher {
-  id        Int     @id @default(autoincrement())
-  name      String
-  email     String  @unique
-  password  String
-  tagId     String  @unique
-  startTime String?
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  password     String // Hash da senha
+  tagId        String   @unique
+  startTime    String?
+  tokenVersion Int      @default(0) // Para invalidar tokens em caso de mudança de senha
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   // relations
   lessonsTaught Lesson[] @relation("TeacherLessons")
