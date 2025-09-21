@@ -1,8 +1,31 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { db } from '@/server.js';
+import {
+  sendValidationError,
+  validatePostRequest,
+} from '@/utils/validation.js';
 
 export async function login(request: FastifyRequest, reply: FastifyReply) {
-  const { email, password } = request.body as {
+  const body = request.body as any;
+
+  const validation = validatePostRequest(
+    body,
+    ['email', 'password'],
+    {
+      email: 'string',
+      password: 'string',
+    },
+    {
+      email: { min: 5, max: 100 },
+      password: { min: 6, max: 100 },
+    },
+  );
+
+  if (!validation.isValid) {
+    return sendValidationError(reply, validation);
+  }
+
+  const { email, password } = body as {
     email: string;
     password: string;
   };
