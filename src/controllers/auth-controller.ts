@@ -12,11 +12,13 @@ export async function login(request: FastifyRequest, reply: FastifyReply) {
   });
 
   if (!teacher || teacher.password !== password) {
-    return reply.status(401).send({ error: 'Invalid email or password' });
+    return reply
+      .status(401)
+      .send({ error: 'Invalid email or password', isAuthenticated: false });
   }
 
   // Se o login for bem-sucedido, você pode retornar um token JWT ou outra informação relevante.
-  return reply.send({ message: 'Login successful' });
+  return reply.send({ message: 'Login successful', isAuthenticated: true });
 }
 
 export async function register(request: FastifyRequest, reply: FastifyReply) {
