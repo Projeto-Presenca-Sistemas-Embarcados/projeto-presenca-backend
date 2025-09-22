@@ -4,7 +4,7 @@ import { PrismaClient } from '@prisma/client';
 import { lessonRoutes } from '@/routes/lesson-routes.js';
 import { teacherRoutes } from '@/routes/teacher-routes.js';
 import { studentRoutes } from '@/routes/student-routes.js';
-import { authRoutes } from './routes/auth-routes.js';
+import { authRoutes } from '@/routes/auth-routes.js';
 
 export const db = new PrismaClient();
 const server = fastify({ logger: true });
