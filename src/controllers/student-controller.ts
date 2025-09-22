@@ -40,7 +40,11 @@ export async function createStudent(
     return sendValidationError(reply, validation);
   }
 
-  const { name, tagId, startTime } = body;
+  const { name, tagId, startTime } = body as {
+    name: string;
+    tagId: string;
+    startTime?: string;
+  };
 
   const existingStudent = await db.student.findUnique({
     where: { tagId },
