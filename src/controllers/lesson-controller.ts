@@ -241,6 +241,76 @@ export async function markAttendance(
   reply.send(attendance);
 }
 
+// Marcar presença usando a tag do aluno (RFID/NFC)
+export async function markAttendanceByTag(
+  request: FastifyRequest,
+  reply: FastifyReply,
+) {
+  const { id } = request.params as { id: string };
+
+  const body = request.body as any;
+
+  const validation = validatePostRequest(
+    body,
+    ['tagId'],
+    {
+      tagId: 'string',
+    },
+    {
+      tagId: { min: 1, max: 50 },
+    },
+  );
+
+  if (!validation.isValid) {
+    return sendValidationError(reply, validation);
+  }
+
+  const { tagId } = body as { tagId: string };
+
+  // Buscar aluno pela tag
+  const student = await db.student.findUnique({ where: { tagId } });
+
+  if (!student) {
+    return reply.code(404).send({ error: 'Aluno não encontrado' });
+  }
+
+  // Verificar se a aula está aberta
+  const lesson = await db.lesson.findUnique({ where: { id: parseInt(id) } });
+
+  if (!lesson) {
+    return reply.code(404).send({ error: 'Aula não encontrada' });
+  }
+
+  if (!lesson.opened) {
+    return reply
+      .code(400)
+      .send({ error: 'Aula não está aberta para marcação de presença' });
+  }
+
+  // Criar ou atualizar presença (marca como presente)
+  const attendance = await db.lessonStudent.upsert({
+    where: {
+      lessonId_studentId: {
+        lessonId: parseInt(id),
+        studentId: student.id,
+      },
+    },
+    update: { present: true },
+    create: {
+      lessonId: parseInt(id),
+      studentId: student.id,
+      present: true,
+    },
+    include: {
+      student: {
+        select: { id: true, name: true, tagId: true },
+      },
+    },
+  });
+
+  reply.send(attendance);
+}
+
 // Listar alunos de uma aula com status de presença
 export async function getLessonStudents(
   request: FastifyRequest,

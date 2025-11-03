@@ -25,4 +25,7 @@ export async function lessonRoutes(server: FastifyInstance) {
 
   // Marcar presença de um aluno
   server.post('/:id/attendance', lessonController.markAttendance);
+
+  // Marcar presença usando a tag do aluno (RFID/NFC) - útil para ESP32
+  server.post('/:id/attendance-tag', lessonController.markAttendanceByTag);
 }
