@@ -10,9 +10,13 @@ import { formatZodError } from '@/utils/zod-error.js';
 
 const server = fastify({ logger: true });
 
-await server.register(cors, { origin: '*' });
+await server.register(cors, {
+  origin: true,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+});
 
-// Error handler global para mapear erros de domínio/serviço e falhas inesperadas
 server.setErrorHandler((error, request, reply) => {
   if (error instanceof ZodError) {
     return reply.code(400).send(formatZodError(error));
@@ -20,7 +24,7 @@ server.setErrorHandler((error, request, reply) => {
   if (error instanceof ServiceError) {
     return reply.code(error.status).send({ error: error.message });
   }
-  // Logs úteis e resposta 500 por padrão
+
   server.log.error({ err: error }, 'Unhandled error');
   return reply.code(500).send({ error: 'Internal Server Error' });
 });
@@ -35,7 +39,7 @@ server.get('/', async (request, reply) => {
   reply.code(200).send({ hello: 'world' });
 });
 
-server.listen({ port: 3000 }, (err) => {
+server.listen({ port: 3001 }, (err) => {
   if (err) {
     server.log.error(`Error starting server: ${err}`);
     process.exit(1);
