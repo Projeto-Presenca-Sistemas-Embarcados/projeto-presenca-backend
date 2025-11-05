@@ -6,6 +6,8 @@ import {
   LessonsByTeacherParamsSchema,
   MarkAttendanceSchema,
   MarkAttendanceByTagSchema,
+  GenerateRecurringLessonsSchema,
+  UpdateLessonSchema,
 } from '@/schemas/lesson-schema.js';
 
 // Listar todas as aulas
@@ -107,4 +109,35 @@ export async function getLessonStudents(
   const students = await lessonService.getLessonStudents(id);
 
   reply.send(students);
+}
+
+// Gerar aulas recorrentes por intervalo
+export async function generateRecurringLessons(
+  request: FastifyRequest,
+  reply: FastifyReply,
+) {
+  const data = GenerateRecurringLessonsSchema.parse(request.body);
+  const result = await lessonService.generateRecurringLessons(data);
+  reply.code(201).send(result);
+}
+
+// Atualizar uma aula
+export async function updateLesson(
+  request: FastifyRequest,
+  reply: FastifyReply,
+) {
+  const { id } = LessonIdParamsSchema.parse(request.params);
+  const data = UpdateLessonSchema.parse(request.body);
+  const lesson = await lessonService.updateLesson(id, data);
+  reply.send(lesson);
+}
+
+// Excluir uma aula
+export async function deleteLesson(
+  request: FastifyRequest,
+  reply: FastifyReply,
+) {
+  const { id } = LessonIdParamsSchema.parse(request.params);
+  const result = await lessonService.deleteLesson(id);
+  reply.send(result);
 }

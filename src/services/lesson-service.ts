@@ -115,3 +115,124 @@ export async function markAttendanceByTag(lessonId: number, tagId: string) {
     include: { student: { select: studentSelect } },
   });
 }
+
+export async function updateLesson(
+  id: number,
+  data: {
+    room?: string | undefined;
+    subject?: string | undefined;
+    startTime?: string | undefined;
+    endTime?: string | undefined;
+  },
+) {
+  const existing = await db.lesson.findUnique({ where: { id } });
+  if (!existing) throw new ServiceError(404, 'Aula não encontrada');
+
+  const updateData: any = {};
+  if (data.room !== undefined) updateData.room = data.room;
+  if (data.subject !== undefined) updateData.subject = data.subject;
+  if (data.startTime !== undefined)
+    updateData.startTime = new Date(data.startTime);
+  if (data.endTime !== undefined) updateData.endTime = new Date(data.endTime);
+
+  return db.lesson.update({
+    where: { id },
+    data: updateData,
+    include: { teacher: { select: { id: true, name: true, email: true } } },
+  });
+}
+
+export async function deleteLesson(id: number) {
+  const existing = await db.lesson.findUnique({
+    where: { id },
+    select: { id: true },
+  });
+  if (!existing) throw new ServiceError(404, 'Aula não encontrada');
+
+  await db.$transaction([
+    db.lessonStudent.deleteMany({ where: { lessonId: id } }),
+    db.lesson.delete({ where: { id } }),
+  ]);
+
+  return { success: true };
+}
+
+export async function generateRecurringLessons(input: {
+  room: string;
+  subject: string;
+  teacherId: number;
+  from: string; // YYYY-MM-DD
+  to: string; // YYYY-MM-DD
+  startHour: string; // HH:mm
+  endHour: string; // HH:mm
+  weekdays: number[]; // 0..6 (0=Domingo)
+}) {
+  const { room, subject, teacherId, from, to, startHour, endHour, weekdays } =
+    input;
+
+  // Sanidade: from <= to
+  const fromDate = new Date(`${from}T00:00:00Z`);
+  const toDate = new Date(`${to}T23:59:59Z`);
+  if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) {
+    throw new ServiceError(400, 'Intervalo de datas inválido');
+  }
+  if (fromDate > toDate) {
+    throw new ServiceError(400, 'Data inicial maior que data final');
+  }
+
+  // Utilitário para construir Date UTC para a data e hora dadas
+  const buildDateTimeUTC = (d: Date, hhmm: string) => {
+    const [hh, mm] = hhmm.split(':').map((s) => parseInt(s, 10));
+    const dt = new Date(
+      Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), hh, mm, 0),
+    );
+    return dt;
+  };
+
+  const created: any[] = [];
+  let skipped = 0;
+
+  // Iterar dias no intervalo
+  for (
+    let t = fromDate.getTime();
+    t <= toDate.getTime();
+    t += 24 * 60 * 60 * 1000
+  ) {
+    const day = new Date(t);
+    const weekDay = day.getUTCDay();
+    if (!weekdays.includes(weekDay)) continue;
+
+    const startTime = buildDateTimeUTC(day, startHour);
+    const endTime = buildDateTimeUTC(day, endHour);
+
+    // Evitar duplicar ocorrência já existente (mesmo teacherId + startTime)
+    const existing = await db.lesson.findFirst({
+      where: { teacherId, startTime },
+      select: { id: true },
+    });
+    if (existing) {
+      skipped++;
+      continue;
+    }
+
+    const lesson = await db.lesson.create({
+      data: {
+        room,
+        subject,
+        teacherId,
+        startTime,
+        endTime,
+        opened: false,
+        closed: false,
+      },
+      include: { teacher: { select: { id: true, name: true, email: true } } },
+    });
+    created.push(lesson);
+  }
+
+  return {
+    createdCount: created.length,
+    skippedCount: skipped,
+    lessons: created,
+  };
+}
