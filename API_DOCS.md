@@ -212,7 +212,7 @@ Body:
 
 Respostas:
 
-- 200: `{ "message": "Login successful", "isAuthenticated": true }`
+- 200: `{ "message": "Login successful", "isAuthenticated": true, "email": "joao@escola.com" }`
 - 401: `{ "error": "Invalid email or password" }`
 - 400: Erro de validação (campos ausentes/formatos inválidos)
 
