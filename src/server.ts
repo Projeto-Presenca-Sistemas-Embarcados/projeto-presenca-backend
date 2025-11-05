@@ -6,6 +6,8 @@ import { teacherRoutes } from '@/routes/teacher-routes.js';
 import { studentRoutes } from '@/routes/student-routes.js';
 import { authRoutes } from '@/routes/auth-routes.js';
 import { ServiceError } from '@/errors/service-error.js';
+import { ZodError } from 'zod';
+import { formatZodError } from '@/utils/zod-error.js';
 
 export const db = new PrismaClient();
 const server = fastify({ logger: true });
@@ -14,6 +16,9 @@ await server.register(cors, { origin: '*' });
 
 // Error handler global para mapear erros de domínio/serviço e falhas inesperadas
 server.setErrorHandler((error, request, reply) => {
+  if (error instanceof ZodError) {
+    return reply.code(400).send(formatZodError(error));
+  }
   if (error instanceof ServiceError) {
     return reply.code(error.status).send({ error: error.message });
   }
