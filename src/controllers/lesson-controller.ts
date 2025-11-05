@@ -8,6 +8,7 @@ import {
 // Listar todas as aulas
 export async function getLessons(request: FastifyRequest, reply: FastifyReply) {
   const lessons = await lessonService.listLessons();
+  
   reply.send(lessons);
 }
 
@@ -18,6 +19,7 @@ export async function getTeacherLessons(
 ) {
   const { teacherId } = request.params as { teacherId: string };
   const lessons = await lessonService.listTeacherLessons(parseInt(teacherId));
+  
   reply.send(lessons);
 }
 
@@ -66,6 +68,7 @@ export async function createLesson(
     startTime,
     endTime,
   });
+  
   reply.code(201).send(lesson);
 }
 
@@ -73,6 +76,7 @@ export async function createLesson(
 export async function getLesson(request: FastifyRequest, reply: FastifyReply) {
   const { id } = request.params as { id: string };
   const lesson = await lessonService.getLessonById(parseInt(id));
+  
   reply.send(lesson);
 }
 
@@ -80,6 +84,7 @@ export async function getLesson(request: FastifyRequest, reply: FastifyReply) {
 export async function openLesson(request: FastifyRequest, reply: FastifyReply) {
   const { id } = request.params as { id: string };
   const lesson = await lessonService.openLesson(parseInt(id));
+  
   reply.send(lesson);
 }
 
@@ -90,6 +95,7 @@ export async function closeLesson(
 ) {
   const { id } = request.params as { id: string };
   const lesson = await lessonService.closeLesson(parseInt(id));
+  
   reply.send(lesson);
 }
 
@@ -128,6 +134,7 @@ export async function markAttendance(
     studentId,
     present,
   );
+  
   reply.send(attendance);
 }
 
@@ -161,6 +168,7 @@ export async function markAttendanceByTag(
     parseInt(id),
     tagId,
   );
+  
   reply.send(attendance);
 }
 
@@ -172,5 +180,6 @@ export async function getLessonStudents(
   const { id } = request.params as { id: string };
 
   const students = await lessonService.getLessonStudents(parseInt(id));
+  
   reply.send(students);
 }
