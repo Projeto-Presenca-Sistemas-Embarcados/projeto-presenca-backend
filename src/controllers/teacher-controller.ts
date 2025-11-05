@@ -1,5 +1,5 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import { db } from '@/server.js';
+import * as teacherService from '@/services/teacher-service.js';
 import {
   sendValidationError,
   validatePostRequest,
@@ -10,16 +10,7 @@ export async function getTeachers(
   request: FastifyRequest,
   reply: FastifyReply,
 ) {
-  const teachers = await db.teacher.findMany({
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      tagId: true,
-      startTime: true,
-      // Não incluir password por segurança
-    },
-  });
+  const teachers = await teacherService.listTeachers();
   reply.send(teachers);
 }
 
@@ -60,45 +51,13 @@ export async function createTeacher(
     tagId: string;
     startTime?: string;
   };
-
-  const existingEmail = await db.teacher.findUnique({
-    where: { email },
+  const teacher = await teacherService.createTeacher({
+    name,
+    email,
+    password,
+    tagId,
+    startTime: startTime ?? null,
   });
-
-  const existingTag = await db.teacher.findUnique({
-    where: { tagId },
-  });
-
-  if (existingEmail) {
-    return reply.status(409).send({
-      error: 'Email já está em uso',
-      code: 'EMAIL_ALREADY_EXISTS',
-    });
-  }
-  if (existingTag) {
-    return reply.status(409).send({
-      error: 'Tag ID já está em uso',
-      code: 'TAGID_ALREADY_EXISTS',
-    });
-  }
-
-  const teacher = await db.teacher.create({
-    data: {
-      name,
-      email,
-      password, // Em produção, hash da senha
-      tagId,
-      startTime: startTime || null,
-    },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      tagId: true,
-      startTime: true,
-    },
-  });
-
   reply.code(201).send(teacher);
 }
 
@@ -106,20 +65,6 @@ export async function createTeacher(
 export async function getTeacher(request: FastifyRequest, reply: FastifyReply) {
   const { id } = request.params as { id: string };
 
-  const teacher = await db.teacher.findUnique({
-    where: { id: parseInt(id) },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      tagId: true,
-      startTime: true,
-    },
-  });
-
-  if (!teacher) {
-    return reply.code(404).send({ error: 'Professor não encontrado' });
-  }
-
+  const teacher = await teacherService.getTeacherById(parseInt(id));
   reply.send(teacher);
 }
