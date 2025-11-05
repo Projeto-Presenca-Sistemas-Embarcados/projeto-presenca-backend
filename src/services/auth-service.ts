@@ -7,7 +7,11 @@ export async function login(input: { email: string; password: string }) {
   if (!teacher || teacher.password !== password) {
     throw new ServiceError(401, 'Invalid email or password');
   }
-  return { message: 'Login successful', isAuthenticated: true };
+  return {
+    message: 'Login successful',
+    isAuthenticated: true,
+    email: teacher.email,
+  };
 }
 
 export async function register(input: {
