@@ -11,6 +11,7 @@ export async function getTeachers(
   reply: FastifyReply,
 ) {
   const teachers = await teacherService.listTeachers();
+  
   reply.send(teachers);
 }
 
@@ -51,6 +52,7 @@ export async function createTeacher(
     tagId: string;
     startTime?: string;
   };
+  
   const teacher = await teacherService.createTeacher({
     name,
     email,
@@ -58,6 +60,7 @@ export async function createTeacher(
     tagId,
     startTime: startTime ?? null,
   });
+  
   reply.code(201).send(teacher);
 }
 
@@ -66,5 +69,6 @@ export async function getTeacher(request: FastifyRequest, reply: FastifyReply) {
   const { id } = request.params as { id: string };
 
   const teacher = await teacherService.getTeacherById(parseInt(id));
+  
   reply.send(teacher);
 }

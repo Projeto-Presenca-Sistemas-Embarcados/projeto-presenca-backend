@@ -45,11 +45,13 @@ export async function createStudent(
     tagId: string;
     startTime?: string;
   };
+  
   const student = await studentService.createStudent({
     name,
     tagId,
     startTime: startTime ?? null,
   });
+  
   reply.code(201).send(student);
 }
 
@@ -58,6 +60,7 @@ export async function getStudent(request: FastifyRequest, reply: FastifyReply) {
   const { id } = request.params as { id: string };
 
   const student = await studentService.getStudentById(parseInt(id));
+  
   reply.send(student);
 }
 
@@ -69,5 +72,6 @@ export async function getStudentByTag(
   const { tagId } = request.params as { tagId: string };
 
   const student = await studentService.getStudentByTag(tagId);
+  
   reply.send(student);
 }

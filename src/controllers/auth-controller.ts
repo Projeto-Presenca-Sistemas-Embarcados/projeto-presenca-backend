@@ -27,6 +27,7 @@ export async function login(request: FastifyRequest, reply: FastifyReply) {
 
   const { email, password } = body as { email: string; password: string };
   const result = await authService.login({ email, password });
+  
   return reply.send(result);
 }
 
@@ -38,5 +39,6 @@ export async function register(request: FastifyRequest, reply: FastifyReply) {
     tagId: string;
   };
   const result = await authService.register({ name, email, password, tagId });
+  
   return reply.status(201).send(result);
 }
