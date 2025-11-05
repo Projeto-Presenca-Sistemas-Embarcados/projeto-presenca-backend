@@ -28,4 +28,20 @@ export async function lessonRoutes(server: FastifyInstance) {
 
   // Marcar presença usando a tag do aluno (RFID/NFC) - útil para ESP32
   server.post('/:id/attendance-tag', lessonController.markAttendanceByTag);
+
+  // Gerar aulas recorrentes em um intervalo de datas
+  server.post('/recurring/generate', lessonController.generateRecurringLessons);
+
+  // Atualizar aula
+  server.put('/:id', lessonController.updateLesson);
+
+  // Excluir aula
+  server.delete('/:id', lessonController.deleteLesson);
+
+  // Gerenciar alunos de uma aula
+  server.post('/:id/students', lessonController.addStudentToLesson);
+  server.delete(
+    '/:id/students/:studentId',
+    lessonController.removeStudentFromLesson,
+  );
 }

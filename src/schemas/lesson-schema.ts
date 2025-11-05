@@ -44,3 +44,63 @@ export const MarkAttendanceByTagSchema = z.object({
 export type MarkAttendanceByTagInput = z.infer<
   typeof MarkAttendanceByTagSchema
 >;
+
+// Geração de aulas recorrentes por intervalo
+export const GenerateRecurringLessonsSchema = z.object({
+  room: z.string().min(1).max(50),
+  subject: z.string().min(3).max(100),
+  teacherId: z.coerce.number().int().positive(),
+  from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), // YYYY-MM-DD
+  to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), // YYYY-MM-DD
+  startHour: z.string().regex(/^\d{2}:\d{2}$/), // HH:mm
+  endHour: z.string().regex(/^\d{2}:\d{2}$/), // HH:mm
+  weekdays: z.array(z.number().int().min(0).max(6)).nonempty(), // 0=Domingo ... 6=Sábado
+});
+
+export type GenerateRecurringLessonsInput = z.infer<
+  typeof GenerateRecurringLessonsSchema
+>;
+
+// Atualizar aula (campos opcionais, pelo menos um)
+export const UpdateLessonSchema = z
+  .object({
+    room: z.string().min(1).max(50).optional(),
+    subject: z.string().min(3).max(100).optional(),
+    startTime: z.string().min(1).max(30).optional(),
+    endTime: z.string().min(1).max(30).optional(),
+  })
+  .refine((data) => Object.keys(data).length > 0, {
+    message: 'Pelo menos um campo deve ser informado',
+    path: ['root'],
+  });
+
+export type UpdateLessonInput = z.infer<typeof UpdateLessonSchema>;
+
+// Adicionar/gerenciar alunos em uma aula
+export const AddStudentToLessonSchema = z.object({
+  studentId: z.coerce.number().int().positive(),
+});
+
+export type AddStudentToLessonInput = z.infer<typeof AddStudentToLessonSchema>;
+
+export const LessonStudentParamsSchema = z.object({
+  id: z
+    .string()
+    .regex(/^\d+$/)
+    .transform((v) => parseInt(v, 10)),
+  studentId: z
+    .string()
+    .regex(/^\d+$/)
+    .transform((v) => parseInt(v, 10)),
+});
+
+export type LessonStudentParams = z.infer<typeof LessonStudentParamsSchema>;
+
+// Allow optional initial students when creating a lesson
+export const CreateLessonWithStudentsSchema = CreateLessonSchema.extend({
+  students: z.array(z.coerce.number().int().positive()).optional(),
+});
+
+export type CreateLessonWithStudentsInput = z.infer<
+  typeof CreateLessonWithStudentsSchema
+>;
