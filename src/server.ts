@@ -5,11 +5,22 @@ import { lessonRoutes } from '@/routes/lesson-routes.js';
 import { teacherRoutes } from '@/routes/teacher-routes.js';
 import { studentRoutes } from '@/routes/student-routes.js';
 import { authRoutes } from '@/routes/auth-routes.js';
+import { ServiceError } from '@/errors/service-error.js';
 
 export const db = new PrismaClient();
 const server = fastify({ logger: true });
 
 await server.register(cors, { origin: '*' });
+
+// Error handler global para mapear erros de domínio/serviço e falhas inesperadas
+server.setErrorHandler((error, request, reply) => {
+  if (error instanceof ServiceError) {
+    return reply.code(error.status).send({ error: error.message });
+  }
+  // Logs úteis e resposta 500 por padrão
+  server.log.error({ err: error }, 'Unhandled error');
+  return reply.code(500).send({ error: 'Internal Server Error' });
+});
 
 // Rotas da API
 await server.register(lessonRoutes, { prefix: '/lessons' });
