@@ -1,5 +1,5 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import { db } from '@/server.js';
+import * as authService from '@/services/auth-service.js';
 import {
   sendValidationError,
   validatePostRequest,
@@ -25,23 +25,9 @@ export async function login(request: FastifyRequest, reply: FastifyReply) {
     return sendValidationError(reply, validation);
   }
 
-  const { email, password } = body as {
-    email: string;
-    password: string;
-  };
-
-  const teacher = await db.teacher.findUnique({
-    where: { email },
-  });
-
-  if (!teacher || teacher.password !== password) {
-    return reply
-      .status(401)
-      .send({ error: 'Invalid email or password', isAuthenticated: false });
-  }
-
-  // Se o login for bem-sucedido, você pode retornar um token JWT ou outra informação relevante.
-  return reply.send({ message: 'Login successful', isAuthenticated: true });
+  const { email, password } = body as { email: string; password: string };
+  const result = await authService.login({ email, password });
+  return reply.send(result);
 }
 
 export async function register(request: FastifyRequest, reply: FastifyReply) {
@@ -51,29 +37,6 @@ export async function register(request: FastifyRequest, reply: FastifyReply) {
     password: string;
     tagId: string;
   };
-
-  const existingTeacher = await db.teacher.findUnique({
-    where: { email },
-  });
-
-  if (existingTeacher) {
-    return reply.status(409).send({ error: 'Email already registered' });
-  }
-
-  const existingTag = await db.teacher.findUnique({
-    where: { tagId },
-  });
-
-  if (existingTag) {
-    return reply.status(409).send({ error: 'Tag ID already registered' });
-  }
-
-  // Se não houver um professor existente, crie um novo
-  const newTeacher = await db.teacher.create({
-    data: { name, email, password, tagId },
-  });
-
-  return reply
-    .status(201)
-    .send({ message: 'Registration successful', teacher: newTeacher });
+  const result = await authService.register({ name, email, password, tagId });
+  return reply.status(201).send(result);
 }
