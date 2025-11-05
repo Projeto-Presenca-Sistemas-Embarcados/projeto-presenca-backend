@@ -60,25 +60,6 @@ POST /lessons/:id/close
 GET /lessons/:id/students
 ```
 
-#### Marcar presença de um aluno (por ID)
-
-```
-POST /lessons/:id/attendance
-```
-
-Body:
-
-```json
-{
-  "studentId": 1,
-  "present": true
-}
-```
-
-Retorna o registro de presença (join LessonStudent) com os dados do aluno.
-
-Requer que a aula esteja aberta (`POST /lessons/:id/open`).
-
 #### Marcar presença de um aluno pela tag (RFID/NFC)
 
 ```
@@ -95,9 +76,16 @@ Body:
 
 Marca o aluno como presente com base na tag cadastrada.
 
-Requer que a aula esteja aberta.`
+Requer que a aula esteja aberta.
 
-#### Marcar presença de um aluno
+Possíveis respostas de erro:
+
+- 400: Aula não está aberta para marcação de presença — `{ "error": "Aula não está aberta para marcação de presença" }`
+- 404: Aula não encontrada — `{ "error": "Aula não encontrada" }`
+- 404: Aluno não encontrado — `{ "error": "Aluno não encontrado" }`
+- 400: Erro de validação (corpo/parâmetros inválidos) — ver seção "Formato de erros de validação" abaixo
+
+#### Marcar presença de um aluno (por ID)
 
 ```
 POST /lessons/:id/attendance
@@ -111,6 +99,15 @@ Body:
   "present": true
 }
 ```
+
+Requer que a aula esteja aberta.
+
+Possíveis respostas de erro:
+
+- 400: Aula não está aberta para marcação de presença — `{ "error": "Aula não está aberta para marcação de presença" }`
+- 404: Aula não encontrada — `{ "error": "Aula não encontrada" }`
+- 404: Aluno não encontrado — `{ "error": "Aluno não encontrado" }` (se o ID não existir)
+- 400: Erro de validação (corpo/parâmetros inválidos) — ver seção "Formato de erros de validação" abaixo
 
 ### 👨‍🏫 **Professores (Teachers)**
 
@@ -137,6 +134,12 @@ Body:
   "startTime": "08:00"
 }
 ```
+
+Respostas de erro frequentes:
+
+- 409: Email já está em uso — `{ "error": "Email já está em uso" }`
+- 409: Tag ID já está em uso — `{ "error": "Tag ID já está em uso" }`
+- 400: Erro de validação (campos ausentes/formatos inválidos)
 
 #### Obter professor específico
 
@@ -168,6 +171,11 @@ Body:
 }
 ```
 
+Respostas de erro frequentes:
+
+- 409: Tag ID já cadastrado — `{ "error": "Tag ID já cadastrado" }`
+- 400: Erro de validação (campos ausentes/formatos inválidos)
+
 #### Obter aluno específico
 
 ```
@@ -179,6 +187,57 @@ GET /students/:id
 ```
 GET /students/tag/:tagId
 ```
+
+Possíveis respostas de erro:
+
+- 404: Aluno não encontrado — `{ "error": "Aluno não encontrado" }`
+- 400: Erro de validação (parâmetros inválidos)
+
+### 🔐 **Autenticação (Auth)**
+
+#### Login
+
+```
+POST /auth/login
+```
+
+Body:
+
+```json
+{
+  "email": "joao@escola.com",
+  "password": "senha123"
+}
+```
+
+Respostas:
+
+- 200: `{ "message": "Login successful", "isAuthenticated": true }`
+- 401: `{ "error": "Invalid email or password" }`
+- 400: Erro de validação (campos ausentes/formatos inválidos)
+
+#### Registro de professor
+
+```
+POST /auth/register
+```
+
+Body:
+
+```json
+{
+  "name": "João Silva",
+  "email": "joao@escola.com",
+  "password": "senha123",
+  "tagId": "TAG001"
+}
+```
+
+Respostas:
+
+- 201: `{ "message": "Registration successful", "teacher": { ... } }`
+- 409: `{ "error": "Email already registered" }` ou `{ "error": "Tag ID already registered" }`
+- 400: Erro de validação (campos ausentes/formatos inválidos)
 
 ## 🔄 **Fluxo de Uso**
 
@@ -279,6 +338,42 @@ curl -X POST http://localhost:3000/lessons/1/attendance \
   -H "Content-Type: application/json" \
   -d '{"studentId":1,"present":true}'
 
+# 5b. Marcar presença via TAG (RFID/NFC)
+curl -X POST http://localhost:3000/lessons/1/attendance-tag \
+  -H "Content-Type: application/json" \
+  -d '{"tagId":"TAG002"}'
+
 # 6. Ver alunos da aula
 curl http://localhost:3000/lessons/1/students
 ```
+
+## ❗ Formato de erros de validação
+
+Quando a validação (via Zod) falha, a resposta segue este formato:
+
+```json
+{
+  "error": "Dados inválidos",
+  "code": "VALIDATION_ERROR",
+  "details": [
+    {
+      "field": "email",
+      "message": "Campo 'email' deve ser um email válido",
+      "code": "INVALID_FORMAT"
+    },
+    {
+      "field": "password",
+      "message": "Campo 'password' é obrigatório",
+      "code": "REQUIRED_FIELD_MISSING"
+    }
+  ]
+}
+```
+
+Erros de domínio/serviço retornam como:
+
+```json
+{ "error": "Mensagem do erro" }
+```
+
+Com status HTTP apropriado (por exemplo: 400, 401, 404, 409).
