@@ -24,10 +24,11 @@ export async function createLesson(input: {
   teacherId: number;
   startTime: string;
   endTime: string;
+  students?: number[] | undefined;
 }) {
-  const { room, subject, teacherId, startTime, endTime } = input;
+  const { room, subject, teacherId, startTime, endTime, students } = input;
 
-  return db.lesson.create({
+  const lesson = await db.lesson.create({
     data: {
       room,
       subject,
@@ -37,7 +38,23 @@ export async function createLesson(input: {
       opened: false,
       closed: false,
     },
-    include: { teacher: { select: { id: true, name: true, email: true } } },
+  });
+
+  // Se vier lista de alunos, associe-os (upsert para idempotência)
+  if (students && students.length > 0) {
+    for (const studentId of students) {
+      await db.lessonStudent.upsert({
+        where: { lessonId_studentId: { lessonId: lesson.id, studentId } },
+        create: { lessonId: lesson.id, studentId, present: false },
+        update: {},
+      });
+    }
+  }
+
+  // Retornar aula com teacher e alunos
+  return db.lesson.findUnique({
+    where: { id: lesson.id },
+    include: lessonInclude,
   });
 }
 
@@ -235,4 +252,40 @@ export async function generateRecurringLessons(input: {
     skippedCount: skipped,
     lessons: created,
   };
+}
+
+export async function addStudentToLesson(lessonId: number, studentId: number) {
+  const lesson = await db.lesson.findUnique({ where: { id: lessonId } });
+  if (!lesson) throw new ServiceError(404, 'Aula não encontrada');
+
+  const student = await db.student.findUnique({ where: { id: studentId } });
+  if (!student) throw new ServiceError(404, 'Aluno não encontrado');
+
+  // Upsert para evitar duplicação
+  const attendance = await db.lessonStudent.upsert({
+    where: { lessonId_studentId: { lessonId, studentId } },
+    create: { lessonId, studentId, present: false },
+    update: {},
+    include: { student: { select: { id: true, name: true, tagId: true } } },
+  });
+
+  return attendance;
+}
+
+export async function removeStudentFromLesson(
+  lessonId: number,
+  studentId: number,
+) {
+  const lesson = await db.lesson.findUnique({ where: { id: lessonId } });
+  if (!lesson) throw new ServiceError(404, 'Aula não encontrada');
+
+  const existing = await db.lessonStudent.findUnique({
+    where: { lessonId_studentId: { lessonId, studentId } },
+    select: { id: true },
+  });
+  if (!existing)
+    throw new ServiceError(404, 'Associação aluno-aula não encontrada');
+
+  await db.lessonStudent.delete({ where: { id: existing.id } });
+  return { success: true };
 }

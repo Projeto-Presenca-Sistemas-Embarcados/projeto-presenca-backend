@@ -75,3 +75,32 @@ export const UpdateLessonSchema = z
   });
 
 export type UpdateLessonInput = z.infer<typeof UpdateLessonSchema>;
+
+// Adicionar/gerenciar alunos em uma aula
+export const AddStudentToLessonSchema = z.object({
+  studentId: z.coerce.number().int().positive(),
+});
+
+export type AddStudentToLessonInput = z.infer<typeof AddStudentToLessonSchema>;
+
+export const LessonStudentParamsSchema = z.object({
+  id: z
+    .string()
+    .regex(/^\d+$/)
+    .transform((v) => parseInt(v, 10)),
+  studentId: z
+    .string()
+    .regex(/^\d+$/)
+    .transform((v) => parseInt(v, 10)),
+});
+
+export type LessonStudentParams = z.infer<typeof LessonStudentParamsSchema>;
+
+// Allow optional initial students when creating a lesson
+export const CreateLessonWithStudentsSchema = CreateLessonSchema.extend({
+  students: z.array(z.coerce.number().int().positive()).optional(),
+});
+
+export type CreateLessonWithStudentsInput = z.infer<
+  typeof CreateLessonWithStudentsSchema
+>;

@@ -37,4 +37,11 @@ export async function lessonRoutes(server: FastifyInstance) {
 
   // Excluir aula
   server.delete('/:id', lessonController.deleteLesson);
+
+  // Gerenciar alunos de uma aula
+  server.post('/:id/students', lessonController.addStudentToLesson);
+  server.delete(
+    '/:id/students/:studentId',
+    lessonController.removeStudentFromLesson,
+  );
 }

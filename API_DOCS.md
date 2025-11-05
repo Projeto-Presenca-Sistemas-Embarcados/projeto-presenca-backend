@@ -142,6 +142,34 @@ Resposta (201):
 GET /lessons/:id/students
 ```
 
+#### Adicionar aluno a uma aula
+
+```
+POST /lessons/:id/students
+```
+
+Body:
+
+```json
+{ "studentId": 1 }
+```
+
+Respostas:
+
+- 201: retorna a associação criada (lessonStudent)
+- 404: Aula não encontrada / Aluno não encontrado
+
+#### Remover aluno de uma aula
+
+```
+DELETE /lessons/:id/students/:studentId
+```
+
+Respostas:
+
+- 200: `{ "success": true }`
+- 404: Associação não encontrada ou aula inexistente
+
 #### Marcar presença de um aluno pela tag (RFID/NFC)
 
 ```

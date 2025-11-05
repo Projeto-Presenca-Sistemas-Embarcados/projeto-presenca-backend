@@ -8,6 +8,9 @@ import {
   MarkAttendanceByTagSchema,
   GenerateRecurringLessonsSchema,
   UpdateLessonSchema,
+  AddStudentToLessonSchema,
+  LessonStudentParamsSchema,
+  CreateLessonWithStudentsSchema,
 } from '@/schemas/lesson-schema.js';
 
 // Listar todas as aulas
@@ -33,15 +36,15 @@ export async function createLesson(
   request: FastifyRequest,
   reply: FastifyReply,
 ) {
-  const { room, subject, teacherId, startTime, endTime } =
-    CreateLessonSchema.parse(request.body);
+  const data = CreateLessonWithStudentsSchema.parse(request.body);
 
   const lesson = await lessonService.createLesson({
-    room,
-    subject,
-    teacherId,
-    startTime,
-    endTime,
+    room: data.room,
+    subject: data.subject,
+    teacherId: data.teacherId,
+    startTime: data.startTime,
+    endTime: data.endTime,
+    students: data.students ?? [],
   });
 
   reply.code(201).send(lesson);
@@ -139,5 +142,26 @@ export async function deleteLesson(
 ) {
   const { id } = LessonIdParamsSchema.parse(request.params);
   const result = await lessonService.deleteLesson(id);
+  reply.send(result);
+}
+
+// Adicionar aluno a uma aula
+export async function addStudentToLesson(
+  request: FastifyRequest,
+  reply: FastifyReply,
+) {
+  const { id } = LessonIdParamsSchema.parse(request.params);
+  const { studentId } = AddStudentToLessonSchema.parse(request.body);
+  const attendance = await lessonService.addStudentToLesson(id, studentId);
+  reply.code(201).send(attendance);
+}
+
+// Remover aluno de uma aula
+export async function removeStudentFromLesson(
+  request: FastifyRequest,
+  reply: FastifyReply,
+) {
+  const { id, studentId } = LessonStudentParamsSchema.parse(request.params);
+  const result = await lessonService.removeStudentFromLesson(id, studentId);
   reply.send(result);
 }
