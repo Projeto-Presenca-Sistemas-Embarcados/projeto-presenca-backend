@@ -1,9 +1,9 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import * as teacherService from '@/services/teacher-service.js';
 import {
-  sendValidationError,
-  validatePostRequest,
-} from '@/utils/validation.js';
+  CreateTeacherSchema,
+  TeacherIdParamsSchema,
+} from '@/schemas/teacher-schema.js';
 
 // Listar todos os professores
 export async function getTeachers(
@@ -11,7 +11,7 @@ export async function getTeachers(
   reply: FastifyReply,
 ) {
   const teachers = await teacherService.listTeachers();
-  
+
   reply.send(teachers);
 }
 
@@ -20,39 +20,10 @@ export async function createTeacher(
   request: FastifyRequest,
   reply: FastifyReply,
 ) {
-  const body = request.body as any;
-
-  const validation = validatePostRequest(
-    body,
-    ['name', 'email', 'password', 'tagId'],
-    {
-      name: 'string',
-      email: 'string',
-      password: 'string',
-      tagId: 'string',
-      startTime: 'string',
-    },
-    {
-      name: { min: 3, max: 100 },
-      email: { min: 5, max: 100 },
-      password: { min: 6, max: 100 },
-      tagId: { min: 1, max: 50 },
-      startTime: { min: 1, max: 10 },
-    },
+  const { name, email, password, tagId, startTime } = CreateTeacherSchema.parse(
+    request.body,
   );
 
-  if (!validation.isValid) {
-    return sendValidationError(reply, validation);
-  }
-
-  const { name, email, password, tagId, startTime } = body as {
-    name: string;
-    email: string;
-    password: string;
-    tagId: string;
-    startTime?: string;
-  };
-  
   const teacher = await teacherService.createTeacher({
     name,
     email,
@@ -60,15 +31,15 @@ export async function createTeacher(
     tagId,
     startTime: startTime ?? null,
   });
-  
+
   reply.code(201).send(teacher);
 }
 
 // Obter professor específico
 export async function getTeacher(request: FastifyRequest, reply: FastifyReply) {
-  const { id } = request.params as { id: string };
+  const { id } = TeacherIdParamsSchema.parse(request.params);
 
-  const teacher = await teacherService.getTeacherById(parseInt(id));
-  
+  const teacher = await teacherService.getTeacherById(id);
+
   reply.send(teacher);
 }

@@ -1,14 +1,17 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import * as lessonService from '@/services/lesson-service.js';
 import {
-  sendValidationError,
-  validatePostRequest,
-} from '@/utils/validation.js';
+  CreateLessonSchema,
+  LessonIdParamsSchema,
+  LessonsByTeacherParamsSchema,
+  MarkAttendanceSchema,
+  MarkAttendanceByTagSchema,
+} from '@/schemas/lesson-schema.js';
 
 // Listar todas as aulas
 export async function getLessons(request: FastifyRequest, reply: FastifyReply) {
   const lessons = await lessonService.listLessons();
-  
+
   reply.send(lessons);
 }
 
@@ -17,9 +20,9 @@ export async function getTeacherLessons(
   request: FastifyRequest,
   reply: FastifyReply,
 ) {
-  const { teacherId } = request.params as { teacherId: string };
-  const lessons = await lessonService.listTeacherLessons(parseInt(teacherId));
-  
+  const { teacherId } = LessonsByTeacherParamsSchema.parse(request.params);
+  const lessons = await lessonService.listTeacherLessons(teacherId);
+
   reply.send(lessons);
 }
 
@@ -28,38 +31,8 @@ export async function createLesson(
   request: FastifyRequest,
   reply: FastifyReply,
 ) {
-  const body = request.body as any;
-
-  const validation = validatePostRequest(
-    body,
-    ['room', 'subject', 'teacherId', 'startTime', 'endTime'],
-    {
-      room: 'string',
-      subject: 'string',
-      teacherId: 'number',
-      startTime: 'string',
-      endTime: 'string',
-    },
-    {
-      room: { min: 1, max: 50 },
-      subject: { min: 3, max: 100 },
-      teacherId: { min: 1 },
-      startTime: { min: 1, max: 10 },
-      endTime: { min: 1, max: 10 },
-    },
-  );
-
-  if (!validation.isValid) {
-    return sendValidationError(reply, validation);
-  }
-
-  const { room, subject, teacherId, startTime, endTime } = body as {
-    room: string;
-    subject: string;
-    teacherId: number;
-    startTime: string;
-    endTime: string;
-  };
+  const { room, subject, teacherId, startTime, endTime } =
+    CreateLessonSchema.parse(request.body);
 
   const lesson = await lessonService.createLesson({
     room,
@@ -68,23 +41,23 @@ export async function createLesson(
     startTime,
     endTime,
   });
-  
+
   reply.code(201).send(lesson);
 }
 
 // Obter aula específica
 export async function getLesson(request: FastifyRequest, reply: FastifyReply) {
-  const { id } = request.params as { id: string };
-  const lesson = await lessonService.getLessonById(parseInt(id));
-  
+  const { id } = LessonIdParamsSchema.parse(request.params);
+  const lesson = await lessonService.getLessonById(id);
+
   reply.send(lesson);
 }
 
 // Abrir aula (permitir marcação de presença)
 export async function openLesson(request: FastifyRequest, reply: FastifyReply) {
-  const { id } = request.params as { id: string };
-  const lesson = await lessonService.openLesson(parseInt(id));
-  
+  const { id } = LessonIdParamsSchema.parse(request.params);
+  const lesson = await lessonService.openLesson(id);
+
   reply.send(lesson);
 }
 
@@ -93,9 +66,9 @@ export async function closeLesson(
   request: FastifyRequest,
   reply: FastifyReply,
 ) {
-  const { id } = request.params as { id: string };
-  const lesson = await lessonService.closeLesson(parseInt(id));
-  
+  const { id } = LessonIdParamsSchema.parse(request.params);
+  const lesson = await lessonService.closeLesson(id);
+
   reply.send(lesson);
 }
 
@@ -104,37 +77,11 @@ export async function markAttendance(
   request: FastifyRequest,
   reply: FastifyReply,
 ) {
-  const { id } = request.params as { id: string };
+  const { id } = LessonIdParamsSchema.parse(request.params);
+  const { studentId, present } = MarkAttendanceSchema.parse(request.body);
 
-  const body = request.body as any;
+  const attendance = await lessonService.markAttendance(id, studentId, present);
 
-  const validation = validatePostRequest(
-    body,
-    ['studentId', 'present'],
-    {
-      studentId: 'number',
-      present: 'boolean',
-    },
-    {
-      studentId: { min: 1 },
-    },
-  );
-
-  if (!validation.isValid) {
-    return sendValidationError(reply, validation);
-  }
-
-  const { studentId, present } = body as {
-    studentId: number;
-    present: boolean;
-  };
-
-  const attendance = await lessonService.markAttendance(
-    parseInt(id),
-    studentId,
-    present,
-  );
-  
   reply.send(attendance);
 }
 
@@ -143,32 +90,11 @@ export async function markAttendanceByTag(
   request: FastifyRequest,
   reply: FastifyReply,
 ) {
-  const { id } = request.params as { id: string };
+  const { id } = LessonIdParamsSchema.parse(request.params);
+  const { tagId } = MarkAttendanceByTagSchema.parse(request.body);
 
-  const body = request.body as any;
+  const attendance = await lessonService.markAttendanceByTag(id, tagId);
 
-  const validation = validatePostRequest(
-    body,
-    ['tagId'],
-    {
-      tagId: 'string',
-    },
-    {
-      tagId: { min: 1, max: 50 },
-    },
-  );
-
-  if (!validation.isValid) {
-    return sendValidationError(reply, validation);
-  }
-
-  const { tagId } = body as { tagId: string };
-
-  const attendance = await lessonService.markAttendanceByTag(
-    parseInt(id),
-    tagId,
-  );
-  
   reply.send(attendance);
 }
 
@@ -177,9 +103,8 @@ export async function getLessonStudents(
   request: FastifyRequest,
   reply: FastifyReply,
 ) {
-  const { id } = request.params as { id: string };
+  const { id } = LessonIdParamsSchema.parse(request.params);
+  const students = await lessonService.getLessonStudents(id);
 
-  const students = await lessonService.getLessonStudents(parseInt(id));
-  
   reply.send(students);
 }
