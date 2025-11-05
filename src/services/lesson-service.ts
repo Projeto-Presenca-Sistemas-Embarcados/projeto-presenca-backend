@@ -1,4 +1,4 @@
-import { db } from '@/server.js';
+import { db } from '@/db.js';
 import { ServiceError } from '@/errors/service-error.js';
 
 const lessonInclude = {
@@ -26,7 +26,7 @@ export async function createLesson(input: {
   endTime: string;
 }) {
   const { room, subject, teacherId, startTime, endTime } = input;
-  
+
   return db.lesson.create({
     data: {
       room,
@@ -47,7 +47,7 @@ export async function getLessonById(id: number) {
     include: lessonInclude,
   });
   if (!lesson) throw new ServiceError(404, 'Aula não encontrada');
-  
+
   return lesson;
 }
 
@@ -69,7 +69,7 @@ export async function closeLesson(id: number) {
 
 async function ensureLessonOpened(id: number) {
   const lesson = await db.lesson.findUnique({ where: { id } });
-  
+
   if (!lesson) throw new ServiceError(404, 'Aula não encontrada');
   if (!lesson.opened)
     throw new ServiceError(

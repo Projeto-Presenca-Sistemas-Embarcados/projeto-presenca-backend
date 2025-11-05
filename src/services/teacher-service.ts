@@ -1,4 +1,4 @@
-import { db } from '@/server.js';
+import { db } from '@/db.js';
 import { ServiceError } from '@/errors/service-error.js';
 
 export async function listTeachers() {

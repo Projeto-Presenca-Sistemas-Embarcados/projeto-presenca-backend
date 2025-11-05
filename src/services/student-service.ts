@@ -1,4 +1,4 @@
-import { db } from '@/server.js';
+import { db } from '@/db.js';
 import { ServiceError } from '@/errors/service-error.js';
 
 export async function listStudents() {
@@ -29,13 +29,13 @@ export async function createStudent(input: {
 export async function getStudentById(id: number) {
   const student = await db.student.findUnique({ where: { id } });
   if (!student) throw new ServiceError(404, 'Aluno não encontrado');
-  
+
   return student;
 }
 
 export async function getStudentByTag(tagId: string) {
   const student = await db.student.findUnique({ where: { tagId } });
   if (!student) throw new ServiceError(404, 'Aluno não encontrado');
-  
+
   return student;
 }

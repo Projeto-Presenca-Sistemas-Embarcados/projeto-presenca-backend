@@ -1,6 +1,5 @@
 import fastify from 'fastify';
 import cors from '@fastify/cors';
-import { PrismaClient } from '@prisma/client';
 import { lessonRoutes } from '@/routes/lesson-routes.js';
 import { teacherRoutes } from '@/routes/teacher-routes.js';
 import { studentRoutes } from '@/routes/student-routes.js';
@@ -9,7 +8,6 @@ import { ServiceError } from '@/errors/service-error.js';
 import { ZodError } from 'zod';
 import { formatZodError } from '@/utils/zod-error.js';
 
-export const db = new PrismaClient();
 const server = fastify({ logger: true });
 
 await server.register(cors, { origin: '*' });
