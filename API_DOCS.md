@@ -60,6 +60,43 @@ POST /lessons/:id/close
 GET /lessons/:id/students
 ```
 
+#### Marcar presença de um aluno (por ID)
+
+```
+POST /lessons/:id/attendance
+```
+
+Body:
+
+```json
+{
+  "studentId": 1,
+  "present": true
+}
+```
+
+Retorna o registro de presença (join LessonStudent) com os dados do aluno.
+
+Requer que a aula esteja aberta (`POST /lessons/:id/open`).
+
+#### Marcar presença de um aluno pela tag (RFID/NFC)
+
+```
+POST /lessons/:id/attendance-tag
+```
+
+Body:
+
+```json
+{
+  "tagId": "TAG123456"
+}
+```
+
+Marca o aluno como presente com base na tag cadastrada.
+
+Requer que a aula esteja aberta.`
+
 #### Marcar presença de um aluno
 
 ```
