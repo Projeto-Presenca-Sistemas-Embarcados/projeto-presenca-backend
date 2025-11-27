@@ -8,6 +8,7 @@ import { authRoutes } from '@/routes/auth-routes.js';
 import { ServiceError } from '@/errors/service-error.js';
 import { ZodError } from 'zod';
 import { formatZodError } from '@/utils/zod-error.js';
+import { initializeMqttClient } from '@/services/mqtt-service.js';
 
 const server = fastify({ logger: true });
 
@@ -40,9 +41,14 @@ server.get('/', async (request, reply) => {
   reply.code(200).send({ hello: 'world' });
 });
 
+// Inicializar cliente MQTT
+initializeMqttClient().catch((error) => {
+  server.log.error(`Erro ao inicializar cliente MQTT: ${error}`);
+});
+
 server.listen({ port: 3001 }, (err) => {
   if (err) {
-    server.log.error(`Error starting server: ${err}`);
+    server.log.error(`Erro ao iniciar servidor: ${err}`);
     process.exit(1);
   }
 });

@@ -1,5 +1,6 @@
 import { db } from '@/db.js';
 import { ServiceError } from '@/errors/service-error.js';
+import { publishLessonStatus } from './mqtt-service.js';
 
 const lessonInclude = {
   teacher: { select: { id: true, name: true, email: true } },
@@ -69,19 +70,37 @@ export async function getLessonById(id: number) {
 }
 
 export async function openLesson(id: number) {
-  return db.lesson.update({
+  const lesson = await db.lesson.update({
     where: { id },
     data: { opened: true, closed: false },
     include: { teacher: { select: { id: true, name: true, email: true } } },
   });
+
+  // Publicar mensagem MQTT para os ESP32s
+  publishLessonStatus({
+    lessonId: lesson.id,
+    room: lesson.room,
+    status: 'opened',
+  });
+
+  return lesson;
 }
 
 export async function closeLesson(id: number) {
-  return db.lesson.update({
+  const lesson = await db.lesson.update({
     where: { id },
     data: { opened: false, closed: true },
     include: { teacher: { select: { id: true, name: true, email: true } } },
   });
+
+  // Publicar mensagem MQTT para os ESP32s
+  publishLessonStatus({
+    lessonId: lesson.id,
+    room: lesson.room,
+    status: 'closed',
+  });
+
+  return lesson;
 }
 
 async function ensureLessonOpened(id: number) {

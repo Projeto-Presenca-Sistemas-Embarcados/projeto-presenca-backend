@@ -44,4 +44,10 @@ export async function lessonRoutes(server: FastifyInstance) {
     '/:id/students/:studentId',
     lessonController.removeStudentFromLesson,
   );
+
+  // Obter logs de presença de uma aula
+  server.get('/:id/logs', lessonController.getLessonLogs);
+
+  // Limpar logs de presença de uma aula
+  server.delete('/:id/logs', lessonController.clearLessonLogs);
 }

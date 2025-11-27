@@ -1,5 +1,6 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import * as lessonService from '@/services/lesson-service.js';
+import { getAttendanceLogs, clearAttendanceLogs } from '@/services/mqtt-service.js';
 import {
   CreateLessonSchema,
   LessonIdParamsSchema,
@@ -164,4 +165,30 @@ export async function removeStudentFromLesson(
   const { id, studentId } = LessonStudentParamsSchema.parse(request.params);
   const result = await lessonService.removeStudentFromLesson(id, studentId);
   reply.send(result);
+}
+
+// Obter logs de presença de uma aula
+export async function getLessonLogs(
+  request: FastifyRequest,
+  reply: FastifyReply,
+) {
+  const { id } = LessonIdParamsSchema.parse(request.params);
+  const logs = getAttendanceLogs(id);
+  // Converter Date para ISO string para serialização JSON
+  reply.send(
+    logs.map((log) => ({
+      ...log,
+      timestamp: log.timestamp.toISOString(),
+    })),
+  );
+}
+
+// Limpar logs de presença de uma aula
+export async function clearLessonLogs(
+  request: FastifyRequest,
+  reply: FastifyReply,
+) {
+  const { id } = LessonIdParamsSchema.parse(request.params);
+  clearAttendanceLogs(id);
+  reply.send({ message: 'Logs de presença limpos com sucesso' });
 }
